@@ -6,7 +6,7 @@ import { setGlobalDispatcher, Agent, Pool, Dispatcher } from 'undici'
 import AbortController from 'abort-controller'
 import { HTTPDataSource, Request, Response, RequestError } from '../src'
 import { AddressInfo } from 'net'
-import { KeyValueCacheSetOptions } from 'apollo-server-caching'
+import { KeyValueCacheSetOptions } from '@apollo/utils.keyvaluecache'
 import FakeTimers from '@sinonjs/fake-timers'
 import { URLSearchParams } from 'url'
 

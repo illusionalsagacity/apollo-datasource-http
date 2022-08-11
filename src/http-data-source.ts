@@ -1,15 +1,16 @@
 import { DataSource, DataSourceConfig } from 'apollo-datasource'
-import { Pool } from 'undici'
-import { STATUS_CODES } from 'http'
-import QuickLRU from '@alloc/quick-lru'
-import { createUnzip, createBrotliDecompress } from 'zlib'
-import streamToPromise from 'stream-to-promise'
-import { KeyValueCache } from 'apollo-server-caching'
-import Dispatcher, { HttpMethod, ResponseData } from 'undici/types/dispatcher'
 import { toApolloError } from 'apollo-server-errors'
-import { EventEmitter } from 'stream'
 import { Logger } from 'apollo-server-types'
+import { STATUS_CODES } from 'http'
+import { EventEmitter, Readable } from 'stream'
+import streamToPromise from 'stream-to-promise'
+import { FormData, Pool } from 'undici'
+import Dispatcher, { HttpMethod, ResponseData } from 'undici/types/dispatcher'
 import { URLSearchParams } from 'url'
+import { createBrotliDecompress, createUnzip } from 'zlib'
+
+import QuickLRU from '@alloc/quick-lru'
+import { KeyValueCache } from '@apollo/utils.keyvaluecache'
 
 type AbortSignal = unknown
 
@@ -51,7 +52,7 @@ export type Request<T = unknown> = {
   method: HttpMethod
   // Indicates if the response of this request should be memoized
   memoize?: boolean
-  headers: Dictionary<string>
+  headers: Dictionary<string> | URLSearchParams
 } & CacheTTLOptions
 
 export type Response<TResult> = {
@@ -78,7 +79,7 @@ export interface HTTPDataSourceOptions {
 // rfc7231 6.1
 // We only cache status codes that indicates a successful response
 // We don't cache redirects, client errors because we expect to cache JSON payload.
-const statusCodeCacheableByDefault = new Set([200, 203])
+const statusCodeCacheableByDefault: ReadonlySet<number> = new Set([200, 203])
 
 /**
  * HTTPDataSource is an optimized HTTP Data Source for Apollo Server
@@ -106,13 +107,19 @@ export abstract class HTTPDataSource<TContext = any> extends DataSource {
     this.logger = options?.logger
   }
 
-  private buildQueryString(query: Dictionary<string | number>): string {
-    const params = new URLSearchParams()
-    for (const key in query) {
-      if (Object.prototype.hasOwnProperty.call(query, key)) {
-        const value = query[key]
-        if (value !== undefined) {
-          params.append(key, value.toString())
+  private buildQueryString(query: Dictionary<string | number> | URLSearchParams): string {
+    let params: URLSearchParams
+
+    if (query instanceof URLSearchParams) {
+      params = new URLSearchParams(query)
+    } else {
+      params = new URLSearchParams()
+      for (const key in query) {
+        if (Object.prototype.hasOwnProperty.call(query, key)) {
+          const value = query[key]
+          if (value !== undefined) {
+            params.append(key, value.toString())
+          }
         }
       }
     }
@@ -352,9 +359,20 @@ export abstract class HTTPDataSource<TContext = any> extends DataSource {
 
     try {
       // do the request
-      if (request.body !== null && typeof request.body === 'object') {
-        // in case of JSON set appropriate content-type header
-        if (request.headers['content-type'] === undefined) {
+      if (
+        request.body instanceof Buffer ||
+        request.body instanceof FormData ||
+        request.body instanceof Readable ||
+        request.body instanceof Uint8Array
+      ) {
+        // noop
+      } else if (request.body !== null && typeof request.body === 'object') {
+        // if the body was not Buffer, FormData, Readable, Uint8Array, or null, assume it is json
+        if (request.headers instanceof URLSearchParams) {
+          if (request.headers.has('content-type')) {
+            request.headers.set('content-type', 'application/json; charset=utf-8')
+          }
+        } else if (!Object.prototype.hasOwnProperty.call(request.headers, 'content-type')) {
           request.headers['content-type'] = 'application/json; charset=utf-8'
         }
         request.body = JSON.stringify(request.body)
@@ -364,7 +382,10 @@ export abstract class HTTPDataSource<TContext = any> extends DataSource {
         method: request.method,
         origin: request.origin,
         path: request.path,
-        headers: request.headers,
+        headers:
+          request.headers instanceof URLSearchParams
+            ? Object.fromEntries(request.headers.entries())
+            : request.headers,
         signal: request.signal,
         body: request.body as string,
       }
