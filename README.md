@@ -5,7 +5,7 @@
 ---
 
 > **Note**: Are you looking for the next generation API Developer Platform? 🔎 Have a look at: [WunderGraph](https://github.com/wundergraph/wundergraph)
-Turn your services, databases and 3rd party APIs into a secure unified API in just a few minutes. 🪄
+> Turn your services, databases and 3rd party APIs into a secure unified API in just a few minutes. 🪄
 
 ---
 
@@ -99,8 +99,8 @@ const datasource = new (class MoviesAPI extends HTTPDataSource {
   async createMovie() {
     return this.post('/movies', {
       body: {
-        name: 'Dude Where\'s My Car',
-      }
+        name: "Dude Where's My Car",
+      },
     })
   }
 

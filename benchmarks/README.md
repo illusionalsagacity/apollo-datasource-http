@@ -11,14 +11,14 @@ Compare `apollo-datasource-http` (HTTP1 + Undici Pool) with apollo's `apollo-dat
 ```
 ❯ node benchmarks/http.js
 {
-  'apollo-datasource-rest (http1)': { startTime: 12631206300610n, endTime: 12632239922219n },
-  'apollo-datasource-http (http1)': { startTime: 12631187804518n, endTime: 12631777587439n }
+  'apollo-datasource-rest (http1)': { startTime: 1557606834329000n, endTime: 1557608744837333n },
+  'apollo-datasource-http (http1)': { startTime: 1557606879482875n, endTime: 1557607752716750n }
 }
 Results for 1000 subsequent requests:
-apollo-datasource-rest (http1) | total time: 1033621609ns (1033.622ms)
-apollo-datasource-http (http1) | total time: 589782921ns (589.783ms)
+apollo-datasource-rest (http1) | total time: 1910508333ns (1910.508ms)
+apollo-datasource-http (http1) | total time: 873233875ns (873.234ms)
 ---
-apollo-datasource-http (http1) <> apollo-datasource-rest (http1) percent change: -42.940%
+apollo-datasource-http (http1) <> apollo-datasource-rest (http1) percent change: -54.293%
 ```
 
-**Result:** `apollo-datasource-http` is around `43%` faster than `apollo-datasource-rest`
+**Result:** `apollo-datasource-http` is around `50%` faster than `apollo-datasource-rest`
